@@ -3,28 +3,28 @@ import { drawButterfly } from "./Silhouette";
 
 interface ColoringCanvasProps {
   color: string;
+  generatedImageUrl?: string | null;
 }
 
-export default function ColoringCanvas({ color }: ColoringCanvasProps) {
+export default function ColoringCanvas({ color, generatedImageUrl }: ColoringCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [hasDrawnSilhouette, setHasDrawnSilhouette] = useState(false);
+  const loadedImageRef = useRef<HTMLImageElement | null>(null);
+  const [canvasKey, setCanvasKey] = useState(0);
 
+  // Initialize and handle canvas resize
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - 80; // Account for color picker height
-
-      // Redraw silhouette if it was already drawn
-      if (hasDrawnSilhouette) {
-        drawButterfly(ctx, canvas.width, canvas.height);
-      }
+      const newWidth = window.innerWidth;
+      const newHeight = window.innerHeight - 140; // Account for generator + color picker height
+      
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      // Trigger redraw after resize
+      setCanvasKey(prev => prev + 1);
     };
 
     resizeCanvas();
@@ -33,19 +33,64 @@ export default function ColoringCanvas({ color }: ColoringCanvasProps) {
     return () => {
       window.removeEventListener("resize", resizeCanvas);
     };
-  }, [hasDrawnSilhouette]);
+  }, []);
 
+  // Load generated image when URL changes
+  useEffect(() => {
+    if (!generatedImageUrl) {
+      // Clear ref and trigger redraw to show butterfly
+      loadedImageRef.current = null;
+      // Use queueMicrotask to defer state update (makes it async)
+      queueMicrotask(() => setCanvasKey(prev => prev + 1));
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      loadedImageRef.current = img;
+      // Trigger redraw via state update in callback (async, so allowed)
+      setCanvasKey(prev => prev + 1);
+    };
+    img.onerror = () => {
+      console.error('Failed to load generated image');
+      loadedImageRef.current = null;
+      setCanvasKey(prev => prev + 1);
+    };
+    img.src = generatedImageUrl;
+  }, [generatedImageUrl]);
+
+  // Draw silhouette whenever canvasKey changes (triggered by image load or resize)
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || hasDrawnSilhouette) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Draw silhouette on first render
-    drawButterfly(ctx, canvas.width, canvas.height);
-    setHasDrawnSilhouette(true);
-  }, [hasDrawnSilhouette]);
+    // Clear canvas first
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw generated image if available, otherwise draw butterfly
+    const loadedImage = loadedImageRef.current;
+    if (loadedImage) {
+      // Center and scale the image
+      const scale = Math.min(
+        canvas.width / loadedImage.width,
+        canvas.height / loadedImage.height
+      ) * 0.9; // 90% of available space
+      
+      const scaledWidth = loadedImage.width * scale;
+      const scaledHeight = loadedImage.height * scale;
+      const x = (canvas.width - scaledWidth) / 2;
+      const y = (canvas.height - scaledHeight) / 2;
+      
+      ctx.drawImage(loadedImage, x, y, scaledWidth, scaledHeight);
+    } else {
+      // Draw default butterfly silhouette
+      drawButterfly(ctx, canvas.width, canvas.height);
+    }
+  }, [canvasKey]);
 
   const getCoordinates = (
     e: MouseEvent | TouchEvent
