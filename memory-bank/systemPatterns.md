@@ -63,7 +63,7 @@ VCB follows a component-based React architecture with TypeScript for type safety
 - Window resize listener updates canvas
 - Silhouette redraws on resize
 - Full viewport layout (100vw x 100vh)
-- Canvas height accounts for toolbars (140px total)
+- Canvas height accounts for toolbars (90px: generator + progress/reset bar)
 
 ### 6. Silhouette Mask System
 **Pattern**: ImageData-based boundary detection
@@ -77,10 +77,12 @@ VCB follows a component-based React architecture with TypeScript for type safety
   - Butterfly fallback: Filled shape drawing
 
 ### 7. Outline Extraction
-**Pattern**: Edge detection algorithm
-- Processes image pixels to identify silhouette boundaries
-- Uses brightness threshold (80) to identify silhouette pixels
-- Extracts only outer boundary (pixels with non-silhouette neighbors)
+**Pattern**: Foreground/background detection with boundary extraction
+- Processes image pixels to identify foreground vs background
+- Uses brightness threshold (> 240) to identify background (white/very light)
+- Creates foreground mask (non-background pixels)
+- Extracts only outer boundary (foreground pixels with background neighbors)
+- Uses 8-connected neighbors for better boundary detection
 - Creates separate outline image for rendering
 - Prevents inner lines from appearing in final outline
 
@@ -89,8 +91,24 @@ VCB follows a component-based React architecture with TypeScript for type safety
 - `isInsideSilhouette(x, y)` checks if coordinates are within silhouette
 - Converts canvas coordinates to mask coordinates
 - Checks pixel brightness in mask (< 250 = inside silhouette)
-- Integrated into `drawAt()` to prevent coloring outside boundary
+- Integrated into `drawAt()` to prevent erasing outside boundary
 - Resets `lastPointRef` when outside boundary to prevent line connections
+
+### 9. Scratch-Off Reveal System
+**Pattern**: Layered canvas rendering with erasing
+- **Layer 1 (Base)**: Original image (Elsa or AI-generated)
+- **Layer 2 (Middle)**: White fill mask (covers inner content)
+- **Layer 3 (Top)**: Black outline (boundary only)
+- **White Fill Canvas**: Separate canvas for white fill layer management
+- **Erasing**: Uses `destination-out` composite operation to erase white
+- **Reset**: Recreates white fill mask and redraws all layers
+
+### 10. React Ref Pattern for Reset
+**Pattern**: Imperative handle with forwardRef
+- `ColoringCanvasRef` interface exposes `reset()` method
+- Component wrapped with `React.forwardRef`
+- Uses `useImperativeHandle` to expose reset function
+- Parent component calls `canvasRef.current?.reset()`
 
 ## Design Patterns
 
@@ -99,15 +117,15 @@ VCB follows a component-based React architecture with TypeScript for type safety
 - **Events Up**: Children call parent callbacks to update state
 - **Unidirectional Data Flow**: State flows down, events flow up
 
-### Drawing System
+### Drawing System (Scratch-Off Reveal)
 ```typescript
-Drawing Flow:
+Erasing Flow:
 1. User interaction (mouse/touch) → Event handler
 2. Event handler → getCoordinates() → Normalized position
 3. Position → isInsideSilhouette() → Boundary check
-4. If inside → drawAt() → Canvas rendering
-5. drawAt() → Draw line from last point + circle at current point
-6. Redraw outline on top → Maintain outline visibility
+4. If inside → drawAt() → Erase white fill layer
+5. drawAt() → Erase white fill canvas using destination-out
+6. Redraw all layers → Image → White fill (with erased areas) → Outline
 7. Update progress → CalculateProgress() → onProgressChange callback
 ```
 
@@ -123,16 +141,18 @@ Drawing Flow:
 ### File Structure
 ```
 src/
-├── App.tsx                    # Main app component
+├── App.tsx                    # Main app component (reset button)
 ├── main.tsx                   # React entry point
 └── components/
-    ├── ColorPicker.tsx        # Color selection UI
-    ├── ColoringCanvas.tsx     # Drawing canvas with mask system
-    ├── ImageGenerator.tsx     # AI image generation UI
+    ├── ColorPicker.tsx        # Color selection UI (hidden, not used)
+    ├── ColoringCanvas.tsx     # Scratch-off reveal canvas with layered rendering
+    ├── ImageGenerator.tsx     # AI image generation UI + Load Elsa button
     ├── ProgressBar.tsx        # Progress indicator
     └── Silhouette.tsx         # Shape drawing utilities (fallback)
 └── services/
     └── aiService.ts            # Gemini LLM integration
+└── assets/
+    └── elsa.jpg                # Elsa image for scratch-off reveal
 ```
 
 ### Naming Conventions

@@ -13,20 +13,20 @@ VCB addresses the need for a modern, digital coloring experience that combines t
 ## How It Should Work
 
 ### User Flow
-1. **Launch**: User opens the app and sees a clean, colorful interface
-2. **Generate Image**: User selects a category (animals, vehicles, nature, etc.) or uses a simple prompt
-3. **AI Processing**: App generates a line art image suitable for coloring (black outlines on white)
-4. **Coloring**: User selects colors from palette and colors the image using brush or fill tools
-5. **Save**: User can save their work at any time
-6. **Load**: User can return later and continue working on saved images
+1. **Launch**: User opens the app and sees a clean interface
+2. **Load Image**: User clicks "Load Elsa" or generates an AI image via category input
+3. **AI Processing**: App generates a line art image (if using AI) or loads Elsa image
+4. **Scratch-Off Reveal**: User draws/scratches on canvas to reveal original image underneath white fill
+5. **Progress Tracking**: Progress bar shows how much of image has been revealed
+6. **Reset**: User can click Reset button to restore white fill and start over
+7. **Save**: User can save their revealed work (future feature)
 
 ### Key Interactions
-- **Color Selection**: Large, touch-friendly color buttons
-- **Brush Tool**: Tap/click and drag to paint
-- **Fill Tool**: Single tap/click to fill enclosed areas
-- **Undo**: Quick access to undo last action
-- **Reset**: Clear all colors and start fresh
-- **Save/Load**: Simple buttons with visual feedback
+- **Load Elsa**: Quick button to load Elsa image
+- **Generate**: AI image generation from category input
+- **Scratch-Off**: Tap/click and drag to erase white layer and reveal image
+- **Reset**: One-click button to restore white fill
+- **Progress**: Visual indicator showing reveal percentage
 
 ## User Experience Goals
 - **Simplicity**: Interface should be understandable by a 4-year-old

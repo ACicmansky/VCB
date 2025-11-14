@@ -31,6 +31,7 @@
 - [x] **ImageGenerator Component**
   - Text input for category entry
   - Generate button with loading state
+  - **"Load Elsa" button** for quick Elsa image access
   - Enter key support
   - Error display and handling
   - Kid-friendly styling
@@ -43,20 +44,20 @@
 - [x] **Layout**
   - Full viewport design
   - Image generator header
-  - Color picker toolbar
-  - Progress bar
+  - Progress bar + Reset button toolbar
   - Canvas fills remaining space
   - No scrolling or overflow
 
 ### Drawing Functionality
-- [x] Continuous brush drawing (connects points with lines)
-- [x] Color selection
+- [x] Scratch-off reveal effect (erasing white layer)
+- [x] Continuous erasing with line connections (15px radius)
 - [x] Mouse and touch support
 - [x] Crosshair cursor
 - [x] Prevent touch scrolling
-- [x] Boundary detection (prevents coloring outside silhouette)
+- [x] Boundary detection (prevents erasing outside silhouette)
 - [x] Outline extraction (outer boundary only)
-- [x] Progress calculation
+- [x] Progress calculation (revealed pixels)
+- [x] Reset functionality
 
 ### AI Image Generation
 - [x] Google Gemini LLM integration (@google/genai)
@@ -67,10 +68,18 @@
 - [x] Fallback to butterfly silhouette
 
 ### Image Processing
-- [x] Outline extraction algorithm (edge detection)
+- [x] Outline extraction algorithm (foreground/background detection)
 - [x] Silhouette mask creation (flood fill)
 - [x] Boundary pixel detection
-- [x] Progress tracking based on mask
+- [x] White fill mask creation
+- [x] Progress tracking based on revealed pixels
+
+### Scratch-Off Reveal Effect
+- [x] Layered rendering system (image → white fill → outline)
+- [x] White fill canvas for separate layer management
+- [x] Erasing functionality (destination-out composite operation)
+- [x] Reset functionality (restores white fill)
+- [x] Elsa image integration
 
 ## 🚧 What's Left to Build
 
@@ -111,10 +120,12 @@
 - [ ] Keyboard shortcuts (Ctrl+Z, Ctrl+Y)
 - [ ] History limit (memory management)
 
-#### 4. Reset Functionality
-- [ ] Reset/clear canvas button
-- [ ] Confirmation dialog (prevent accidents)
-- [ ] Restore original line art after reset
+#### 4. Reset Functionality ✅ COMPLETED
+- [x] Reset button in toolbar
+- [x] Restores white fill layer
+- [x] Resets progress to 0%
+- [x] React ref pattern implementation
+- [ ] Confirmation dialog (optional enhancement)
 
 #### 5. Save/Load System
 - [ ] **Save Functionality**
@@ -173,43 +184,41 @@
 
 ### Completion Estimate
 - **Infrastructure**: 100% ✅
-- **Basic UI**: 90% 🟢
-- **Coloring Tools**: 60% 🟡
+- **Basic UI**: 95% 🟢
+- **Reveal Effect**: 95% 🟢
 - **AI Generation**: 95% 🟢
-- **Boundary Detection**: 80% 🟡 (needs refinement)
+- **Boundary Detection**: 90% 🟢
+- **Reset Functionality**: 100% ✅
 - **Save/Load**: 0% 🔴
-- **Overall MVP**: ~60% 🟡
+- **Overall MVP**: ~75% 🟢
 
 ### Blockers
-1. **Boundary checking needs refinement** - User reported coloring still extends outside silhouette
-2. **No tool selection system** - Limits adding new tools
-3. **No state history** - Prevents undo/redo implementation
-4. **No storage layer** - Prevents save/load features
+1. **No undo/redo system** - Users can't undo erasing operations
+2. **No storage layer** - Prevents save/load features
+3. **Fixed brush size** - No user control over erasing brush size
 
 ### Next Immediate Steps
-1. Test and refine boundary checking logic
-2. Verify coordinate transformation between canvas and mask
-3. Expose fill bucket tool with UI
-4. Add brush size controls
-5. Implement undo/redo system
-6. Build save/load functionality
+1. Test performance with large images
+2. Add brush size controls for reveal effect
+3. Implement undo/redo system for erasing
+4. Build save/load functionality
+5. Consider performance optimizations
 
 ## 🐛 Known Issues
 
 ### Critical
-- **Boundary checking may not work correctly** - User reported coloring extends outside silhouette outline
-- No way to recover from mistakes (no undo)
+- No way to undo erasing operations (no undo/redo)
 - Canvas clears on window resize (but redraws correctly with outline)
+- Redrawing all layers on each draw may impact performance
 
 ### Minor
-- No visual feedback when drawing starts
-- No indication of selected tool (only brush exists)
-- Fill bucket tool exists but not exposed to user
+- Fixed brush size (15px) - no user control
+- No visual feedback when erasing starts
 - No loading states for image processing
 
 ### Technical Debt
 - No error boundaries
 - No TypeScript strict mode
 - No tests
-- Coordinate transformation between canvas and mask may need adjustment
-- Boundary checking uses brightness threshold (may need refinement)
+- Performance optimization may be needed for large images
+- White fill canvas uses additional memory

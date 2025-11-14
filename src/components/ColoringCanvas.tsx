@@ -1,19 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { drawButterflyOutline } from "./Silhouette";
 
 interface ColoringCanvasProps {
-  color: string;
   generatedImageUrl?: string | null;
   onProgressChange?: (progress: number) => void;
 }
 
-export default function ColoringCanvas({
-  color,
-  generatedImageUrl,
-  onProgressChange,
-}: ColoringCanvasProps) {
+export interface ColoringCanvasRef {
+  reset: () => void;
+}
+
+const ColoringCanvas = (
+  { generatedImageUrl, onProgressChange }: ColoringCanvasProps,
+  ref: React.Ref<ColoringCanvasRef>
+) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const whiteFillCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const loadedImageRef = useRef<HTMLImageElement | null>(null);
   const outlineImageRef = useRef<HTMLImageElement | null>(null);
@@ -22,6 +31,7 @@ export default function ColoringCanvas({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   // Extract outline from generated image - only outer boundary
+  // This extracts ONLY the outer boundary to prevent revealing original image underneath
   const extractOutline = (img: HTMLImageElement) => {
     // Create a temporary canvas to process the image
     const tempCanvas = document.createElement("canvas");
@@ -44,54 +54,62 @@ export default function ColoringCanvas({
     const width = tempCanvas.width;
     const height = tempCanvas.height;
 
-    // Threshold: pixels darker than this are considered part of silhouette
-    const threshold = 80;
-
-    // Helper function to check if a pixel is part of the silhouette
-    const isSilhouettePixel = (idx: number): boolean => {
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
-      const brightness = (r + g + b) / 3;
-      return brightness <= threshold && a >= 200;
-    };
-
     // Helper function to get pixel index
     const getPixelIndex = (x: number, y: number): number => {
       if (x < 0 || x >= width || y < 0 || y >= height) return -1;
       return (y * width + x) * 4;
     };
 
-    // Create a mask to identify silhouette pixels
-    const silhouetteMask = new Uint8Array(width * height);
+    // Helper function to check if pixel is background (white/very light)
+    const isBackgroundPixel = (idx: number): boolean => {
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const a = data[idx + 3];
+
+      // Check if pixel is transparent or very light (background)
+      if (a < 128) return true;
+
+      // Calculate brightness
+      const brightness = (r + g + b) / 3;
+
+      // Consider pixels with brightness > 240 as background (white/very light)
+      return brightness > 240;
+    };
+
+    // Create a mask to identify foreground (non-background) pixels
+    const foregroundMask = new Uint8Array(width * height);
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = getPixelIndex(x, y);
-        silhouetteMask[y * width + x] = isSilhouettePixel(idx) ? 1 : 0;
+        foregroundMask[y * width + x] = isBackgroundPixel(idx) ? 0 : 1;
       }
     }
 
-    // Now extract only boundary pixels (edge detection)
-    // A pixel is a boundary if it's part of silhouette AND has at least one neighbor that's NOT part of silhouette
+    // Extract only outer boundary pixels
+    // A pixel is a boundary if it's foreground AND has at least one background neighbor
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = getPixelIndex(x, y);
-        const isSilhouette = silhouetteMask[y * width + x] === 1;
+        const isForeground = foregroundMask[y * width + x] === 1;
 
-        if (!isSilhouette) {
-          // Not part of silhouette, make transparent
+        if (!isForeground) {
+          // Background pixel - make transparent
           data[idx + 3] = 0;
           continue;
         }
 
-        // Check if this pixel is on the boundary
-        // Check 4-connected neighbors (up, down, left, right)
+        // Check if this pixel is on the outer boundary
+        // Check 8-connected neighbors (including diagonals for better boundary detection)
         const neighbors = [
-          [x, y - 1], // up
-          [x, y + 1], // down
+          [x - 1, y - 1], // top-left
+          [x, y - 1], // top
+          [x + 1, y - 1], // top-right
           [x - 1, y], // left
           [x + 1, y], // right
+          [x - 1, y + 1], // bottom-left
+          [x, y + 1], // bottom
+          [x + 1, y + 1], // bottom-right
         ];
 
         let isBoundary = false;
@@ -102,8 +120,8 @@ export default function ColoringCanvas({
             break;
           }
           const neighborIdx = ny * width + nx;
-          if (silhouetteMask[neighborIdx] === 0) {
-            // Neighbor is not part of silhouette - this is a boundary pixel
+          if (foregroundMask[neighborIdx] === 0) {
+            // Neighbor is background - this is a boundary pixel
             isBoundary = true;
             break;
           }
@@ -117,6 +135,7 @@ export default function ColoringCanvas({
           data[idx + 3] = 255; // Full opacity
         } else {
           // Internal pixel, not on boundary - make transparent
+          // This prevents internal details from showing through
           data[idx + 3] = 0;
         }
       }
@@ -133,12 +152,17 @@ export default function ColoringCanvas({
     outlineImg.src = tempCanvas.toDataURL();
   };
 
-  // Initialize tracking canvas for progress calculation
+  // Initialize tracking canvas for progress calculation and white fill canvas
   useEffect(() => {
     const trackingCanvas = document.createElement("canvas");
     trackingCanvasRef.current = trackingCanvas;
+
+    const whiteFillCanvas = document.createElement("canvas");
+    whiteFillCanvasRef.current = whiteFillCanvas;
+
     return () => {
       trackingCanvasRef.current = null;
+      whiteFillCanvasRef.current = null;
     };
   }, []);
 
@@ -146,16 +170,19 @@ export default function ColoringCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     const trackingCanvas = trackingCanvasRef.current;
-    if (!canvas || !trackingCanvas) return;
+    const whiteFillCanvas = whiteFillCanvasRef.current;
+    if (!canvas || !trackingCanvas || !whiteFillCanvas) return;
 
     const resizeCanvas = () => {
       const newWidth = window.innerWidth;
-      const newHeight = window.innerHeight - 140; // Account for generator + color picker height
+      const newHeight = window.innerHeight - 90; // Account for generator + progress bar height (color picker hidden)
 
       canvas.width = newWidth;
       canvas.height = newHeight;
       trackingCanvas.width = newWidth;
       trackingCanvas.height = newHeight;
+      whiteFillCanvas.width = newWidth;
+      whiteFillCanvas.height = newHeight;
 
       // Reset silhouette mask
       silhouetteMaskRef.current = null;
@@ -443,21 +470,74 @@ export default function ColoringCanvas({
     }
   }, []);
 
-  // Calculate progress percentage
+  // Create white fill mask that covers inner content (inside outline)
+  const createWhiteFillMask = useCallback(() => {
+    const canvas = canvasRef.current;
+    const whiteFillCanvas = whiteFillCanvasRef.current;
+    if (!canvas || !whiteFillCanvas || !silhouetteMaskRef.current) return;
+
+    const whiteFillCtx = whiteFillCanvas.getContext("2d");
+    if (!whiteFillCtx) return;
+
+    // Clear white fill canvas
+    whiteFillCtx.fillStyle = "transparent";
+    whiteFillCtx.fillRect(0, 0, whiteFillCanvas.width, whiteFillCanvas.height);
+
+    const mask = silhouetteMaskRef.current;
+    const maskData = mask.data;
+    const width = mask.width;
+    const height = mask.height;
+
+    // Create image data for white fill
+    const fillImageData = whiteFillCtx.createImageData(width, height);
+    const fillData = fillImageData.data;
+
+    // Fill inner area (inside silhouette) with white
+    for (let i = 0; i < maskData.length; i += 4) {
+      const maskR = maskData[i];
+      const maskG = maskData[i + 1];
+      const maskB = maskData[i + 2];
+
+      // Check if pixel is inside silhouette (not white in mask)
+      const brightness = (maskR + maskG + maskB) / 3;
+      if (brightness < 250) {
+        // Inside silhouette - fill with white
+        fillData[i] = 255; // R
+        fillData[i + 1] = 255; // G
+        fillData[i + 2] = 255; // B
+        fillData[i + 3] = 255; // A (opaque white)
+      } else {
+        // Outside silhouette - transparent
+        fillData[i] = 0;
+        fillData[i + 1] = 0;
+        fillData[i + 2] = 0;
+        fillData[i + 3] = 0;
+      }
+    }
+
+    whiteFillCtx.putImageData(fillImageData, 0, 0);
+  }, []);
+
+  // Calculate progress percentage - based on revealed pixels (white layer erased)
   const calculateProgress = () => {
     const canvas = canvasRef.current;
-    const trackingCanvas = trackingCanvasRef.current;
-    if (!canvas || !trackingCanvas || !silhouetteMaskRef.current) return 0;
+    const whiteFillCanvas = whiteFillCanvasRef.current;
+    if (!canvas || !whiteFillCanvas || !silhouetteMaskRef.current) return 0;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return 0;
+    const whiteFillCtx = whiteFillCanvas.getContext("2d");
+    if (!whiteFillCtx) return 0;
 
-    // Get current canvas image data
-    const canvasData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Get white fill canvas image data
+    const whiteFillData = whiteFillCtx.getImageData(
+      0,
+      0,
+      whiteFillCanvas.width,
+      whiteFillCanvas.height
+    );
     const maskData = silhouetteMaskRef.current;
 
     let silhouettePixels = 0;
-    let coloredPixels = 0;
+    let revealedPixels = 0;
 
     // Check if pixel is part of silhouette (not white in mask)
     const isSilhouettePixel = (r: number, g: number, b: number): boolean => {
@@ -465,10 +545,15 @@ export default function ColoringCanvas({
       return brightness < 250; // Not white
     };
 
-    // Check if pixel is colored (not white)
-    const isColoredPixel = (r: number, g: number, b: number): boolean => {
-      const brightness = (r + g + b) / 3;
-      return brightness < 250; // Not white
+    // Check if pixel is revealed (white layer is transparent/erased)
+    const isRevealedPixel = (
+      r: number,
+      g: number,
+      b: number,
+      a: number
+    ): boolean => {
+      // Pixel is revealed if it's transparent or not white (erased)
+      return a < 128 || (r + g + b) / 3 < 250;
     };
 
     for (let i = 0; i < maskData.data.length; i += 4) {
@@ -478,21 +563,22 @@ export default function ColoringCanvas({
 
       if (isSilhouettePixel(maskR, maskG, maskB)) {
         silhouettePixels++;
-        const canvasR = canvasData.data[i];
-        const canvasG = canvasData.data[i + 1];
-        const canvasB = canvasData.data[i + 2];
+        const fillR = whiteFillData.data[i];
+        const fillG = whiteFillData.data[i + 1];
+        const fillB = whiteFillData.data[i + 2];
+        const fillA = whiteFillData.data[i + 3];
 
-        if (isColoredPixel(canvasR, canvasG, canvasB)) {
-          coloredPixels++;
+        if (isRevealedPixel(fillR, fillG, fillB, fillA)) {
+          revealedPixels++;
         }
       }
     }
 
     if (silhouettePixels === 0) return 0;
-    return (coloredPixels / silhouettePixels) * 100;
+    return (revealedPixels / silhouettePixels) * 100;
   };
 
-  // Draw silhouette whenever canvasKey changes (triggered by image load or resize)
+  // Draw layers whenever canvasKey changes (triggered by image load or resize)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -519,27 +605,42 @@ export default function ColoringCanvas({
       const x = (canvas.width - scaledWidth) / 2;
       const y = (canvas.height - scaledHeight) / 2;
 
-      // Only draw the outline (not the full image with fills)
+      // Layer 1: Draw original image as base layer
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(loadedImage, x, y, scaledWidth, scaledHeight);
+
+      // Layer 2: Draw white fill mask (middle layer, covers inner content)
+      const whiteFillCanvas = whiteFillCanvasRef.current;
+      if (whiteFillCanvas) {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(whiteFillCanvas, 0, 0);
+      }
+
+      // Layer 3: Draw outline on top
       const outlineImg = outlineImageRef.current;
       if (outlineImg) {
+        ctx.globalCompositeOperation = "source-over";
         ctx.drawImage(outlineImg, x, y, scaledWidth, scaledHeight);
-      } else {
-        // Fallback: draw the base image if outline extraction hasn't completed yet
-        ctx.drawImage(loadedImage, x, y, scaledWidth, scaledHeight);
       }
     } else {
       // Draw default butterfly outline only (no fill)
       drawButterflyOutline(ctx, canvas.width, canvas.height);
     }
 
-    // Calculate silhouette mask after drawing
+    // Calculate silhouette mask and white fill after drawing
     setTimeout(() => {
       calculateSilhouetteMask();
+      createWhiteFillMask();
       if (onProgressChange) {
         onProgressChange(calculateProgress());
       }
     }, 100);
-  }, [canvasKey, onProgressChange, calculateSilhouetteMask]);
+  }, [
+    canvasKey,
+    onProgressChange,
+    calculateSilhouetteMask,
+    createWhiteFillMask,
+  ]);
 
   const getCoordinates = (
     e: MouseEvent | TouchEvent
@@ -596,10 +697,12 @@ export default function ColoringCanvas({
 
   const drawAt = (x: number, y: number) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const whiteFillCanvas = whiteFillCanvasRef.current;
+    if (!canvas || !whiteFillCanvas) return;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const whiteFillCtx = whiteFillCanvas.getContext("2d");
+    if (!ctx || !whiteFillCtx) return;
 
     // Check if the click is inside the silhouette before drawing
     if (!isInsideSilhouette(x, y)) {
@@ -609,33 +712,63 @@ export default function ColoringCanvas({
 
     const brushRadius = 15;
 
-    // Use destination-over so colors go behind existing content (outline)
-    ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = color;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = brushRadius * 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    // Erase white fill layer using destination-out composite operation
+    whiteFillCtx.globalCompositeOperation = "destination-out";
+    whiteFillCtx.fillStyle = "rgba(255, 255, 255, 1)";
+    whiteFillCtx.strokeStyle = "rgba(255, 255, 255, 1)";
+    whiteFillCtx.lineWidth = brushRadius * 2;
+    whiteFillCtx.lineCap = "round";
+    whiteFillCtx.lineJoin = "round";
 
-    ctx.beginPath();
+    whiteFillCtx.beginPath();
 
     if (lastPointRef.current) {
       // Draw a line from the last point to the current point
-      ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-      ctx.lineTo(x, y);
-      ctx.stroke();
+      whiteFillCtx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
+      whiteFillCtx.lineTo(x, y);
+      whiteFillCtx.stroke();
     }
 
     // Always draw a circle at the current point to ensure coverage
-    ctx.beginPath();
-    ctx.arc(x, y, brushRadius, 0, Math.PI * 2);
-    ctx.fill();
+    whiteFillCtx.beginPath();
+    whiteFillCtx.arc(x, y, brushRadius, 0, Math.PI * 2);
+    whiteFillCtx.fill();
 
     // Update last point
     lastPointRef.current = { x, y };
 
-    // Redraw outline on top after coloring
-    redrawOutline();
+    // Redraw layers: base image → white fill (with erased areas) → outline
+    const loadedImage = loadedImageRef.current;
+    if (loadedImage) {
+      const scale =
+        Math.min(
+          canvas.width / loadedImage.width,
+          canvas.height / loadedImage.height
+        ) * 0.9;
+      const scaledWidth = loadedImage.width * scale;
+      const scaledHeight = loadedImage.height * scale;
+      const imgX = (canvas.width - scaledWidth) / 2;
+      const imgY = (canvas.height - scaledHeight) / 2;
+
+      // Clear and redraw layers
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Layer 1: Original image
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(loadedImage, imgX, imgY, scaledWidth, scaledHeight);
+
+      // Layer 2: White fill (with erased areas)
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(whiteFillCanvas, 0, 0);
+
+      // Layer 3: Outline
+      const outlineImg = outlineImageRef.current;
+      if (outlineImg) {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(outlineImg, imgX, imgY, scaledWidth, scaledHeight);
+      }
+    }
 
     // Update progress
     if (onProgressChange) {
@@ -672,7 +805,12 @@ export default function ColoringCanvas({
     return brightness < 250; // Inside silhouette if not white
   };
 
-  const redrawOutline = () => {
+  // Reset function to restore white fill layer
+  const reset = useCallback(() => {
+    // Recreate white fill mask
+    createWhiteFillMask();
+
+    // Redraw all layers
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -680,28 +818,50 @@ export default function ColoringCanvas({
     if (!ctx) return;
 
     const loadedImage = loadedImageRef.current;
-
-    if (loadedImage && outlineImageRef.current) {
-      // Redraw outline for generated image
+    if (loadedImage) {
       const scale =
         Math.min(
           canvas.width / loadedImage.width,
           canvas.height / loadedImage.height
         ) * 0.9;
-
       const scaledWidth = loadedImage.width * scale;
       const scaledHeight = loadedImage.height * scale;
       const x = (canvas.width - scaledWidth) / 2;
       const y = (canvas.height - scaledHeight) / 2;
 
+      // Clear canvas
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Layer 1: Original image
       ctx.globalCompositeOperation = "source-over";
-      ctx.drawImage(outlineImageRef.current, x, y, scaledWidth, scaledHeight);
-    } else {
-      // Redraw butterfly outline
-      ctx.globalCompositeOperation = "source-over";
-      drawButterflyOutline(ctx, canvas.width, canvas.height);
+      ctx.drawImage(loadedImage, x, y, scaledWidth, scaledHeight);
+
+      // Layer 2: White fill (restored)
+      const whiteFillCanvas = whiteFillCanvasRef.current;
+      if (whiteFillCanvas) {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(whiteFillCanvas, 0, 0);
+      }
+
+      // Layer 3: Outline
+      const outlineImg = outlineImageRef.current;
+      if (outlineImg) {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(outlineImg, x, y, scaledWidth, scaledHeight);
+      }
     }
-  };
+
+    // Reset progress
+    if (onProgressChange) {
+      onProgressChange(0);
+    }
+  }, [createWhiteFillMask, onProgressChange]);
+
+  // Expose reset function via ref
+  useImperativeHandle(ref, () => ({
+    reset,
+  }));
 
   return (
     <canvas
@@ -720,4 +880,6 @@ export default function ColoringCanvas({
       }}
     />
   );
-}
+};
+
+export default React.forwardRef(ColoringCanvas);

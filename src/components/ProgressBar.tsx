@@ -8,12 +8,10 @@ export default function ProgressBar({ progress }: ProgressBarProps) {
   return (
     <div
       style={{
-        padding: "10px 15px",
-        backgroundColor: "#f9f9f9",
-        borderBottom: "2px solid #ddd",
         display: "flex",
         alignItems: "center",
         gap: "15px",
+        flex: 1,
       }}
     >
       <div style={{ fontSize: "14px", fontWeight: "bold", color: "#333", minWidth: "80px" }}>

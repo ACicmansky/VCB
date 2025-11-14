@@ -1,63 +1,68 @@
 # Active Context
 
 ## Current Status
-**Phase**: Core Features Complete - Refining Coloring Experience
+**Phase**: Scratch-Off Reveal Effect Complete - Core Feature Implemented
 
 ## What's Been Built
 ### Completed Components
-1. **ColorPicker Component** (`src/components/ColorPicker.tsx`)
-   - 8 predefined kid-friendly colors
-   - Visual selection with border highlight
-   - Circular color buttons (50px)
-
-2. **ColoringCanvas Component** (`src/components/ColoringCanvas.tsx`)
-   - Canvas-based drawing surface
+1. **ColoringCanvas Component** (`src/components/ColoringCanvas.tsx`)
+   - Canvas-based drawing surface with layered rendering
+   - **Scratch-off reveal effect**: Original image → white fill → outline layers
    - Mouse and touch event support
-   - Continuous brush drawing with line connections (15px radius)
+   - Continuous erasing with line connections (15px radius brush)
    - Responsive canvas sizing
    - Drawing state management
    - **Silhouette mask system** for boundary detection
-   - **Outline extraction** from generated images (outer boundary only)
-   - **Boundary checking** to prevent coloring outside silhouette
-   - **Progress tracking** based on colored pixels within silhouette
-   - Flood fill algorithm implementation (for mask creation)
+   - **Outline extraction** from images (outer boundary only)
+   - **White fill mask** covering inner content
+   - **Boundary checking** to prevent erasing outside silhouette
+   - **Progress tracking** based on revealed pixels
+   - **Reset functionality** via React ref pattern
+   - Flood fill algorithm (for mask creation)
 
-3. **ImageGenerator Component** (`src/components/ImageGenerator.tsx`)
+2. **ImageGenerator Component** (`src/components/ImageGenerator.tsx`)
    - Text input for category entry
    - Generate button with loading state
+   - **"Load Elsa" button** for quick Elsa image access
    - Enter key support
    - Error display
    - Kid-friendly styling
 
-4. **ProgressBar Component** (`src/components/ProgressBar.tsx`)
+3. **ProgressBar Component** (`src/components/ProgressBar.tsx`)
    - Visual progress indicator (0-100%)
    - Percentage display
    - Smooth transitions
+   - Updated for flex layout
 
-5. **AI Service** (`src/services/aiService.ts`)
+4. **AI Service** (`src/services/aiService.ts`)
    - Gemini LLM integration (gemini-2.5-flash model)
    - SVG generation from category prompts
    - SVG to data URL conversion
    - Canvas rendering utilities
 
-6. **Silhouette Component** (`src/components/Silhouette.tsx`)
+5. **Silhouette Component** (`src/components/Silhouette.tsx`)
    - Hardcoded butterfly silhouette drawing (fallback)
    - Both filled and outline versions
 
-7. **App Structure** (`src/App.tsx`)
+6. **App Structure** (`src/App.tsx`)
    - Complete layout with all components
-   - State management for color, image URL, and progress
+   - State management for image URL and progress
+   - **Reset button** in toolbar
+   - ColorPicker hidden (not needed for reveal effect)
    - Full viewport layout
 
 ## Current Work Focus
-**Boundary Detection & Coloring Restriction** - Recently implemented silhouette mask system to prevent coloring outside the outline. User reported issue with coloring extending beyond silhouette - investigating and refining the boundary checking logic.
+**Scratch-Off Reveal Effect** - Fully implemented scratch-off reveal system where users draw to uncover the original image underneath a white fill layer. Reset functionality allows users to restore the white fill and start over.
 
 ## Recent Changes
-- Implemented `isInsideSilhouette()` function to check if coordinates are within silhouette mask
-- Integrated boundary check into `drawAt()` function
-- Created silhouette mask using flood fill algorithm
-- Extract only outer boundary from generated images (not inner lines)
-- Progress tracking calculates percentage of silhouette area colored
+- **Scratch-off reveal effect**: Layered rendering (image → white fill → outline)
+- **White fill mask system**: Separate canvas for white fill layer
+- **Erasing functionality**: Uses `destination-out` to erase white layer
+- **Elsa image integration**: "Load Elsa" button in ImageGenerator
+- **Reset button**: Restores white fill and resets progress
+- **Progress tracking**: Tracks revealed pixels instead of colored pixels
+- **Outer boundary extraction**: Only extracts outer boundary (no internal edges)
+- **Color picker removed**: No longer needed for reveal effect
 
 ## What's Missing (MVP Requirements)
 ### Critical Features
@@ -67,14 +72,14 @@
    - ✅ SVG generation via Gemini LLM
    - ✅ Loading states during generation
    - ✅ Error handling
-   - ⚠️ Boundary checking may need refinement based on user testing
+   - ✅ Elsa image integration
 
-2. **Enhanced Coloring Tools**
-   - Fill bucket tool UI (algorithm exists but not exposed)
-   - Adjustable brush size
-   - Undo/redo functionality
-   - Reset canvas button
-   - Tool selection UI
+2. **Scratch-Off Reveal Effect** ✅ COMPLETED
+   - ✅ Layered rendering system
+   - ✅ White fill mask creation
+   - ✅ Erasing functionality
+   - ✅ Reset button
+   - ✅ Progress tracking
 
 3. **Save/Load System**
    - Save canvas to localStorage/IndexedDB
@@ -83,31 +88,30 @@
    - Export as PNG/JPG
 
 ### Technical Gaps
-- No state management for tool selection
-- No history tracking for undo/redo
+- No undo/redo for erasing operations
 - No storage implementation
-- Boundary checking may need coordinate transformation fixes
+- No brush size controls (fixed at 15px)
 
 ## Next Steps
-1. Test and refine boundary checking with user feedback
-2. Verify coordinate transformation between canvas and mask
-3. Implement fill bucket tool UI
-4. Add brush size controls
-5. Implement undo/redo system
-6. Build save/load functionality
+1. Test performance with large images
+2. Consider optimization for smoother drawing
+3. Add undo/redo functionality if needed
+4. Add brush size controls for reveal effect
+5. Build save/load functionality
 
 ## Active Decisions
 - **Canvas vs SVG**: Using Canvas for drawing, SVG for AI generation (converted to canvas)
 - **State Management**: Currently using React useState; may need Context or reducer for complexity
 - **Storage Strategy**: Likely localStorage for MVP, can upgrade to cloud later
 - **AI Provider**: Google Gemini via @google/genai (gemini-2.5-flash model)
+- **Reveal Effect**: Scratch-off style with layered rendering (image → white fill → outline)
+- **Reset Pattern**: React ref pattern with `useImperativeHandle` for imperative reset
 - **Boundary Detection**: Using silhouette mask with ImageData for pixel-level checking
-- **Outline Extraction**: Edge detection algorithm extracts only outer boundary pixels
+- **Outline Extraction**: Foreground/background detection extracts only outer boundary pixels
 
 ## Known Issues
-- Boundary checking may not work correctly - user reported coloring still extends outside silhouette
-- Coordinate transformation between canvas coordinates and mask coordinates may need adjustment
-- No way to change tools (only brush exists)
-- No undo functionality
+- Redrawing all layers on each draw may impact performance on slower devices
+- No undo/redo for erasing operations
+- Fixed brush size (15px) - no user control
 - Canvas clears on window resize (but redraws correctly)
 - No save/load capability

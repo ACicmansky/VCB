@@ -1,12 +1,13 @@
 # Project Brief: VCB (Virtual Coloring Book)
 
 ## Project Overview
-VCB is an AI-powered coloring application designed for kids, combining AI image generation with interactive digital coloring tools.
+VCB is an AI-powered scratch-off reveal application designed for kids, combining AI image generation with an interactive scratch-off reveal effect where users uncover images by drawing through a white fill layer.
 
 ## Core Objectives
 1. Provide a simple, kid-friendly interface for generating line art images via AI
-2. Enable intuitive coloring with basic digital tools
-3. Allow users to save and load their work for continuation
+2. Enable intuitive scratch-off reveal effect (uncovering images by drawing)
+3. Support both AI-generated images and pre-loaded images (e.g., Elsa)
+4. Allow users to save and load their work for continuation (future)
 
 ## MVP Scope
 ### Phase 1: Core Features
@@ -14,12 +15,12 @@ VCB is an AI-powered coloring application designed for kids, combining AI image 
   - Predefined prompts/categories for easy selection
   - Kid-appropriate content generation
   
-- **Basic Coloring Tools**:
-  - Color palette with kid-friendly colors
-  - Brush tool with adjustable size
-  - Fill bucket tool for easy coloring
-  - Undo functionality
-  - Reset canvas option
+- **Scratch-Off Reveal Tools**:
+  - Drawing/scratching to reveal original image
+  - White fill layer covering inner content
+  - Outline-only rendering (outer boundary)
+  - Reset button to restore white fill
+  - Progress tracking (revealed percentage)
 
 - **Save/Load System**:
   - Save colored images locally

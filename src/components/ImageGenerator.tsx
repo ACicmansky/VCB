@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generateColoringImage, svgToDataUrl } from '../services/aiService';
+import elsaImage from '../assets/elsa.jpg';
 
 interface ImageGeneratorProps {
   onImageGenerated: (imageUrl: string) => void;
@@ -43,6 +44,10 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
     }
   };
 
+  const handleLoadElsa = () => {
+    onImageGenerated(elsaImage);
+  };
+
   return (
     <div style={{
       padding: '15px',
@@ -74,6 +79,35 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
         onBlur={(e) => e.target.style.borderColor = '#ddd'}
       />
       
+      <button
+        onClick={handleLoadElsa}
+        disabled={isGenerating}
+        style={{
+          padding: '10px 25px',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          backgroundColor: isGenerating ? '#ccc' : '#FF6B9D',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: isGenerating ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s',
+          minWidth: '120px',
+        }}
+        onMouseEnter={(e) => {
+          if (!isGenerating) {
+            e.currentTarget.style.backgroundColor = '#E55A8D';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isGenerating) {
+            e.currentTarget.style.backgroundColor = '#FF6B9D';
+          }
+        }}
+      >
+        Load Elsa
+      </button>
+
       <button
         onClick={handleGenerate}
         disabled={isGenerating || !category.trim()}
