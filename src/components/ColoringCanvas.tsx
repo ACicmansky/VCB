@@ -19,8 +19,9 @@ export default function ColoringCanvas({
   const outlineImageRef = useRef<HTMLImageElement | null>(null);
   const silhouetteMaskRef = useRef<ImageData | null>(null);
   const [canvasKey, setCanvasKey] = useState(0);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Extract outline from generated image
+  // Extract outline from generated image - only outer boundary
   const extractOutline = (img: HTMLImageElement) => {
     // Create a temporary canvas to process the image
     const tempCanvas = document.createElement("canvas");
@@ -40,29 +41,84 @@ export default function ColoringCanvas({
       tempCanvas.height
     );
     const data = imageData.data;
+    const width = tempCanvas.width;
+    const height = tempCanvas.height;
 
-    // Extract only black/dark pixels (outline)
-    // Threshold: pixels darker than this are considered outline
+    // Threshold: pixels darker than this are considered part of silhouette
     const threshold = 80;
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const a = data[i + 3];
 
-      // Calculate brightness
+    // Helper function to check if a pixel is part of the silhouette
+    const isSilhouettePixel = (idx: number): boolean => {
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const a = data[idx + 3];
       const brightness = (r + g + b) / 3;
+      return brightness <= threshold && a >= 200;
+    };
 
-      // If pixel is dark enough and has sufficient opacity, keep it as outline
-      // Otherwise make it transparent
-      if (brightness > threshold || a < 200) {
-        data[i + 3] = 0; // Make transparent
-      } else {
-        // Keep the dark pixel as outline (make it pure black)
-        data[i] = 0; // R
-        data[i + 1] = 0; // G
-        data[i + 2] = 0; // B
-        data[i + 3] = 255; // Full opacity
+    // Helper function to get pixel index
+    const getPixelIndex = (x: number, y: number): number => {
+      if (x < 0 || x >= width || y < 0 || y >= height) return -1;
+      return (y * width + x) * 4;
+    };
+
+    // Create a mask to identify silhouette pixels
+    const silhouetteMask = new Uint8Array(width * height);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = getPixelIndex(x, y);
+        silhouetteMask[y * width + x] = isSilhouettePixel(idx) ? 1 : 0;
+      }
+    }
+
+    // Now extract only boundary pixels (edge detection)
+    // A pixel is a boundary if it's part of silhouette AND has at least one neighbor that's NOT part of silhouette
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = getPixelIndex(x, y);
+        const isSilhouette = silhouetteMask[y * width + x] === 1;
+
+        if (!isSilhouette) {
+          // Not part of silhouette, make transparent
+          data[idx + 3] = 0;
+          continue;
+        }
+
+        // Check if this pixel is on the boundary
+        // Check 4-connected neighbors (up, down, left, right)
+        const neighbors = [
+          [x, y - 1], // up
+          [x, y + 1], // down
+          [x - 1, y], // left
+          [x + 1, y], // right
+        ];
+
+        let isBoundary = false;
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+            // Edge of image - this is a boundary pixel
+            isBoundary = true;
+            break;
+          }
+          const neighborIdx = ny * width + nx;
+          if (silhouetteMask[neighborIdx] === 0) {
+            // Neighbor is not part of silhouette - this is a boundary pixel
+            isBoundary = true;
+            break;
+          }
+        }
+
+        if (isBoundary) {
+          // Keep this pixel as outline (pure black)
+          data[idx] = 0; // R
+          data[idx + 1] = 0; // G
+          data[idx + 2] = 0; // B
+          data[idx + 3] = 255; // Full opacity
+        } else {
+          // Internal pixel, not on boundary - make transparent
+          data[idx + 3] = 0;
+        }
       }
     }
 
@@ -517,6 +573,7 @@ export default function ColoringCanvas({
     setIsDrawing(true);
     const coords = getCoordinates(e.nativeEvent);
     if (coords) {
+      lastPointRef.current = { x: coords.x, y: coords.y };
       drawAt(coords.x, coords.y);
     }
   };
@@ -534,6 +591,7 @@ export default function ColoringCanvas({
 
   const stopDrawing = () => {
     setIsDrawing(false);
+    lastPointRef.current = null;
   };
 
   const drawAt = (x: number, y: number) => {
@@ -545,15 +603,36 @@ export default function ColoringCanvas({
 
     // Check if the click is inside the silhouette before drawing
     if (!isInsideSilhouette(x, y)) {
+      lastPointRef.current = null; // Reset last point if outside silhouette
       return; // Don't draw outside the silhouette
     }
+
+    const brushRadius = 15;
 
     // Use destination-over so colors go behind existing content (outline)
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = brushRadius * 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
     ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
+
+    if (lastPointRef.current) {
+      // Draw a line from the last point to the current point
+      ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    // Always draw a circle at the current point to ensure coverage
+    ctx.beginPath();
+    ctx.arc(x, y, brushRadius, 0, Math.PI * 2);
     ctx.fill();
+
+    // Update last point
+    lastPointRef.current = { x, y };
 
     // Redraw outline on top after coloring
     redrawOutline();
