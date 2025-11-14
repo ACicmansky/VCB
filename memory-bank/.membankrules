@@ -1,0 +1,174 @@
+# Memory Bank Rules for VCB Project
+
+## Update Triggers
+Update memory bank files when:
+- New features are implemented
+- Architecture decisions are made
+- Dependencies are added or changed
+- Major bugs are discovered or fixed
+- User requirements change
+- Technical constraints are identified
+
+## File-Specific Rules
+
+### projectbrief.md
+- Update when: Scope changes, new requirements added, success criteria modified
+- Keep: Concise and high-level
+- Avoid: Implementation details
+
+### productContext.md
+- Update when: User flows change, UX goals shift, new problems identified
+- Keep: User-focused and problem-oriented
+- Avoid: Technical solutions
+
+### activeContext.md
+- Update: Frequently (every major work session)
+- Keep: Current and actionable
+- Remove: Completed items (move to progress.md)
+- Include: Current blockers, decisions, next steps
+
+### systemPatterns.md
+- Update when: New patterns introduced, architecture changes, design decisions made
+- Keep: Pattern rationale and trade-offs
+- Avoid: Specific implementation code (use comments in code for that)
+
+### techContext.md
+- Update when: Dependencies change, new APIs integrated, technical constraints discovered
+- Keep: Up-to-date with package.json
+- Include: Setup instructions, API documentation links
+
+### progress.md
+- Update: After completing tasks or discovering new work
+- Keep: Accurate completion status
+- Move: Completed items from activeContext.md
+- Track: Blockers and known issues
+
+## Journal Guidelines
+
+### When to Create Journal Entries
+- Major feature implementation sessions
+- Significant debugging sessions
+- Architecture decisions
+- API integration work
+- Complex problem-solving
+
+### Journal Entry Format
+```markdown
+# YYYY_MM_DD_descriptive_name.md
+
+## Session Goal
+[What you're trying to accomplish]
+
+## Context
+[Relevant background, related files, previous work]
+
+## Work Log
+[Chronological notes of work done]
+
+## Decisions Made
+[Key decisions and rationale]
+
+## Outcomes
+[What was accomplished, what remains]
+
+## Next Steps
+[Clear actions for next session]
+```
+
+### Journal Naming
+- Date format: YYYY_MM_DD
+- Descriptive: Brief description of work
+- Examples:
+  - `2024_11_14_ai_integration.md`
+  - `2024_11_15_fill_tool_implementation.md`
+  - `2024_11_16_save_load_system.md`
+
+## Maintenance Schedule
+
+### Every Session
+- Update activeContext.md
+- Create/update journal entry if major work
+
+### After Feature Completion
+- Update progress.md
+- Update systemPatterns.md if patterns changed
+- Update techContext.md if dependencies changed
+
+### Weekly
+- Review all files for accuracy
+- Archive old journal entries if needed
+- Clean up activeContext.md
+
+### Major Milestones
+- Update projectbrief.md if scope changed
+- Update productContext.md if UX changed
+- Comprehensive review of all files
+
+## Quality Standards
+
+### All Files Should Be
+- **Accurate**: Reflect current state
+- **Concise**: No unnecessary verbosity
+- **Actionable**: Clear next steps
+- **Organized**: Consistent structure
+- **Up-to-date**: No stale information
+
+### Avoid
+- Duplicate information across files
+- Outdated information
+- Implementation code (belongs in source files)
+- Vague or ambiguous statements
+- Overly detailed technical specs (use code comments)
+
+## Integration with Development
+
+### Before Starting Work
+1. Read relevant memory bank files
+2. Check activeContext.md for current focus
+3. Review progress.md for status
+4. Check journal for recent decisions
+
+### During Work
+1. Take notes for journal entry
+2. Document decisions as they're made
+3. Track blockers and issues
+
+### After Work Session
+1. Update activeContext.md
+2. Update progress.md
+3. Create/update journal entry
+4. Update other files as needed
+
+## File Relationships
+
+```
+projectbrief.md (Foundation)
+    ↓
+productContext.md (Why & How)
+    ↓
+systemPatterns.md (Architecture)
+    ↓
+techContext.md (Implementation)
+    ↓
+activeContext.md (Current Work)
+    ↓
+progress.md (Status)
+    ↓
+journal/* (Detailed History)
+```
+
+## Self-Validation Checklist
+
+Every 15-20 API calls, validate:
+- [ ] Are we working on the right thing per activeContext.md?
+- [ ] Does progress.md reflect actual progress?
+- [ ] Are we following patterns in systemPatterns.md?
+- [ ] Have we documented decisions?
+- [ ] Is activeContext.md up to date?
+- [ ] Do we need to create a journal entry?
+
+## Notes
+- Memory bank is source of truth for project context
+- Code is source of truth for implementation
+- Keep memory bank and code in sync
+- When in doubt, update memory bank
