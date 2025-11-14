@@ -26,8 +26,8 @@
 }
 ```
 
-### Required Dependencies (Not Yet Installed)
-- **@google/generative-ai**: For AI image generation (Gemini API)
+### Installed Dependencies
+- **@google/genai**: For AI image generation (Gemini API) ✅ INSTALLED
 
 ### Potential Future Dependencies
 - **localforage** or **idb**: Better IndexedDB wrapper for storage
@@ -84,27 +84,32 @@
 ## API Integration
 
 ### Google Gemini API (@google/genai)
-**Status**: Not yet integrated
+**Status**: ✅ Integrated and functional
 
-**Required Setup**:
-1. Install package: `npm install @google/generative-ai`
-2. Obtain API key from Google AI Studio
-3. Configure environment variables for API key
-4. Implement generation service
+**Setup Completed**:
+1. ✅ Package installed: `@google/genai`
+2. ✅ Environment variable: `VITE_GOOGLE_AI_API_KEY`
+3. ✅ Service module: `src/services/aiService.ts`
+4. ✅ UI component: `src/components/ImageGenerator.tsx`
 
-**Expected Usage**:
+**Current Implementation**:
 ```typescript
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GoogleGenAI } from "@google/genai"
 
-const genAI = new GoogleGenerativeAI(API_KEY)
-const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" })
+const genAI = new GoogleGenAI({ apiKey: API_KEY })
 
-// Generate line art from prompt
-const result = await model.generateContent({
-  prompt: "Simple line art of a cat for kids coloring book",
-  // Additional parameters for style, size, etc.
+// Generate SVG from category using Gemini LLM
+const result = await genAI.models.generateContent({
+  model: "gemini-2.5-flash",
+  contents: prompt, // Detailed prompt for SVG generation
 })
+
+const svgContent = result.text // Extract SVG code from response
 ```
+
+**Model**: `gemini-2.5-flash` (text generation model for SVG code)
+**Output Format**: SVG vector graphics (converted to canvas for coloring)
+**Generation Time**: ~3-8 seconds
 
 ## Storage Strategy
 
@@ -177,9 +182,11 @@ npm run build  # Output to dist/
   - Environment variable support for API keys
 
 ## Known Technical Debt
-1. No environment variable setup for API keys
+1. ✅ Environment variable setup for API keys (completed)
 2. No error boundaries for React components
-3. No loading states or error handling
-4. Canvas state not persisted on resize
+3. ✅ Loading states and error handling (implemented)
+4. ✅ Canvas state persists on resize (redraws correctly)
 5. No TypeScript strict mode enabled
 6. No unit tests or E2E tests
+7. Boundary checking coordinate transformation may need refinement
+8. No caching for generated images

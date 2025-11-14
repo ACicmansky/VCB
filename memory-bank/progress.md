@@ -7,6 +7,7 @@
 - [x] Development environment configured
 - [x] ESLint configuration
 - [x] Basic project structure
+- [x] Environment variable configuration (.env support)
 
 ### UI Components
 - [x] **ColorPicker Component**
@@ -21,45 +22,77 @@
   - Touch event handling
   - Responsive sizing
   - Drawing state management
-  - Basic brush tool (15px radius)
+  - Continuous brush drawing with line connections (15px radius)
+  - Silhouette mask system for boundary detection
+  - Outline extraction from generated images (outer boundary only)
+  - Boundary checking to prevent coloring outside silhouette
+  - Progress tracking based on colored pixels
+
+- [x] **ImageGenerator Component**
+  - Text input for category entry
+  - Generate button with loading state
+  - Enter key support
+  - Error display and handling
+  - Kid-friendly styling
+
+- [x] **ProgressBar Component**
+  - Visual progress indicator (0-100%)
+  - Percentage display
+  - Smooth transitions
 
 - [x] **Layout**
   - Full viewport design
-  - Color picker header
+  - Image generator header
+  - Color picker toolbar
+  - Progress bar
   - Canvas fills remaining space
   - No scrolling or overflow
 
 ### Drawing Functionality
-- [x] Basic brush drawing
+- [x] Continuous brush drawing (connects points with lines)
 - [x] Color selection
 - [x] Mouse and touch support
 - [x] Crosshair cursor
 - [x] Prevent touch scrolling
+- [x] Boundary detection (prevents coloring outside silhouette)
+- [x] Outline extraction (outer boundary only)
+- [x] Progress calculation
 
-### Demo Content
-- [x] Hardcoded butterfly silhouette
-- [x] Centered and scaled drawing
-- [x] Responsive to window resize
+### AI Image Generation
+- [x] Google Gemini LLM integration (@google/genai)
+- [x] SVG generation from category prompts
+- [x] SVG to canvas rendering
+- [x] Image loading and display
+- [x] Centered and scaled rendering (90% of canvas)
+- [x] Fallback to butterfly silhouette
+
+### Image Processing
+- [x] Outline extraction algorithm (edge detection)
+- [x] Silhouette mask creation (flood fill)
+- [x] Boundary pixel detection
+- [x] Progress tracking based on mask
 
 ## 🚧 What's Left to Build
 
 ### High Priority (MVP Blockers)
 
-#### 1. AI Image Generation System
-- [ ] Install @google/generative-ai package
-- [ ] Set up API key management (environment variables)
-- [ ] Create AI service module
-- [ ] Design prompt/category selection UI
-- [ ] Implement line art generation
-- [ ] Add loading states during generation
-- [ ] Error handling for API failures
-- [ ] Content safety filtering
+#### 1. AI Image Generation System ✅ COMPLETED
+- [x] Install @google/generative-ai package
+- [x] Set up API key management (environment variables)
+- [x] Create AI service module
+- [x] Design prompt/category selection UI
+- [x] Implement SVG generation via Gemini LLM
+- [x] Add loading states during generation
+- [x] Error handling for API failures
+- [x] Content safety filtering (built into prompt)
+- [ ] Test boundary checking refinement (user reported issue)
 
 #### 2. Enhanced Coloring Tools
-- [ ] **Fill Bucket Tool**
-  - Flood fill algorithm implementation
-  - Tool selection UI
-  - Visual feedback for fill areas
+- [x] **Fill Bucket Tool** (algorithm implemented, UI missing)
+  - [x] Flood fill algorithm implementation
+  - [ ] Tool selection UI
+  - [ ] Visual feedback for fill areas
+  - [ ] Expose fill tool to user
   
 - [ ] **Brush Size Control**
   - Size slider or preset sizes
@@ -140,41 +173,43 @@
 
 ### Completion Estimate
 - **Infrastructure**: 100% ✅
-- **Basic UI**: 60% 🟡
-- **Coloring Tools**: 30% 🔴
-- **AI Generation**: 0% 🔴
+- **Basic UI**: 90% 🟢
+- **Coloring Tools**: 60% 🟡
+- **AI Generation**: 95% 🟢
+- **Boundary Detection**: 80% 🟡 (needs refinement)
 - **Save/Load**: 0% 🔴
-- **Overall MVP**: ~25% 🔴
+- **Overall MVP**: ~60% 🟡
 
 ### Blockers
-1. **@google/genai not installed** - Prevents AI generation work
+1. **Boundary checking needs refinement** - User reported coloring still extends outside silhouette
 2. **No tool selection system** - Limits adding new tools
 3. **No state history** - Prevents undo/redo implementation
 4. **No storage layer** - Prevents save/load features
 
 ### Next Immediate Steps
-1. Install @google/genai package
-2. Set up environment variables for API key
-3. Create basic AI generation service
-4. Build category/prompt selection UI
-5. Test AI image generation
+1. Test and refine boundary checking logic
+2. Verify coordinate transformation between canvas and mask
+3. Expose fill bucket tool with UI
+4. Add brush size controls
+5. Implement undo/redo system
+6. Build save/load functionality
 
 ## 🐛 Known Issues
 
 ### Critical
-- Canvas clears on window resize (loses drawing progress)
+- **Boundary checking may not work correctly** - User reported coloring extends outside silhouette outline
 - No way to recover from mistakes (no undo)
-- Butterfly silhouette is hardcoded placeholder
+- Canvas clears on window resize (but redraws correctly with outline)
 
 ### Minor
 - No visual feedback when drawing starts
 - No indication of selected tool (only brush exists)
-- Color picker could be more prominent
-- No loading states anywhere
+- Fill bucket tool exists but not exposed to user
+- No loading states for image processing
 
 ### Technical Debt
 - No error boundaries
 - No TypeScript strict mode
 - No tests
-- No API error handling
-- No input validation
+- Coordinate transformation between canvas and mask may need adjustment
+- Boundary checking uses brightness threshold (may need refinement)
