@@ -54,3 +54,59 @@ export function drawButterfly(ctx: CanvasRenderingContext2D, width: number, heig
   ctx.fill()
 }
 
+export function drawButterflyOutline(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const centerX = width / 2
+  const centerY = height / 2
+  const scale = Math.min(width, height) * 0.4
+
+  ctx.strokeStyle = '#000000'
+  ctx.lineWidth = 3
+  ctx.fillStyle = 'transparent'
+
+  // Left wing (top) outline
+  ctx.beginPath()
+  ctx.ellipse(centerX - scale * 0.3, centerY - scale * 0.2, scale * 0.4, scale * 0.5, -0.3, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Left wing (bottom) outline
+  ctx.beginPath()
+  ctx.ellipse(centerX - scale * 0.3, centerY + scale * 0.2, scale * 0.4, scale * 0.5, 0.3, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Right wing (top) outline
+  ctx.beginPath()
+  ctx.ellipse(centerX + scale * 0.3, centerY - scale * 0.2, scale * 0.4, scale * 0.5, 0.3, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Right wing (bottom) outline
+  ctx.beginPath()
+  ctx.ellipse(centerX + scale * 0.3, centerY + scale * 0.2, scale * 0.4, scale * 0.5, -0.3, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Body outline
+  ctx.beginPath()
+  ctx.ellipse(centerX, centerY, scale * 0.08, scale * 0.6, 0, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Head outline
+  ctx.beginPath()
+  ctx.arc(centerX, centerY - scale * 0.5, scale * 0.1, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Antennae
+  ctx.beginPath()
+  ctx.moveTo(centerX, centerY - scale * 0.5)
+  ctx.lineTo(centerX - scale * 0.1, centerY - scale * 0.65)
+  ctx.moveTo(centerX, centerY - scale * 0.5)
+  ctx.lineTo(centerX + scale * 0.1, centerY - scale * 0.65)
+  ctx.stroke()
+
+  // Antennae tips
+  ctx.beginPath()
+  ctx.arc(centerX - scale * 0.1, centerY - scale * 0.65, scale * 0.02, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(centerX + scale * 0.1, centerY - scale * 0.65, scale * 0.02, 0, Math.PI * 2)
+  ctx.fill()
+}
+
