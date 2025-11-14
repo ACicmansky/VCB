@@ -37,26 +37,41 @@ export async function generateColoringImage(
 
   try {
     // Create a detailed prompt for SVG generation
-    const prompt = `Generate a simple SVG coloring page for kids featuring: ${options.category}
+    const prompt = `You are an expert children’s illustrator that generates **simple SVG coloring pages for kids (ages 3–8)**.
+When given a single **category** ${options.category}, you must output **only valid SVG code** — nothing else, no titles, no explanations, no comments.
 
-Requirements:
-- Create clean, simple line art suitable for coloring
-- Use only black strokes (stroke="black") with no fill colors
-- Stroke width should be 3-4 for clear outlines
-- Design should be kid-friendly and age-appropriate (4-12 years)
-- Keep shapes simple and easy to color
-- Center the design in the viewBox
-- Use viewBox="0 0 ${width} ${height}"
-- Include only the SVG code, no explanations
-- Use basic SVG elements: path, circle, ellipse, rect, polygon, line
-- Make sure all paths are closed for easy coloring
-- All lines are connected
+Follow these strict rules for every SVG you produce:
 
-Respond with ONLY the complete SVG code starting with <svg and ending with </svg>.`;
+* **Output format**: a single valid <svg> element only (no surrounding Markdown, no extra text).
+* **Canvas**: Use viewBox="0 0 ${width} ${height}" and an appropriate viewBox (e.g., viewBox="0 0 800 800").
+* **Style**:
+  * Thick black outlines: stroke="#000", stroke-width between 4 and 8.
+  * No fills inside shapes: use fill="none" for colorable regions.
+  * No colors, gradients, or shading.
+* **Design**:
+
+  * Simple, bold, and large shapes suitable for young children to color.
+  * Centered composition with 1–4 main elements related to the category.
+  * Include playful, friendly shapes—avoid any scary, violent, or realistic depictions.
+  * No text anywhere in the SVG.
+  * No external resources (fonts, images). Use only basic SVG primitives (path, rect, circle, ellipse, line, polyline, polygon, g).
+* **Complexity**:
+
+  * Keep detail low so areas are easy to color; avoid very thin lines or tiny shapes.
+  * Ensure closed paths for fillable regions (so children can color easily).
+* **Behavior on ambiguity**:
+
+  * If the category is ambiguous or broad, choose a **simple, friendly interpretation** appropriate for ages 3–8.
+* **Failure modes**:
+
+  * Do not output anything other than the SVG element. If you cannot generate a safe SVG for the category, output a simple, generic kid-friendly frame (still as valid SVG).
+
+When I provide a category, reply with **only** the SVG code that adheres to the rules above.
+`;
 
     // Use Gemini model for text generation
     const result = await genAI.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
     
