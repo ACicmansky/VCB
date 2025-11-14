@@ -543,6 +543,11 @@ export default function ColoringCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Check if the click is inside the silhouette before drawing
+    if (!isInsideSilhouette(x, y)) {
+      return; // Don't draw outside the silhouette
+    }
+
     // Use destination-over so colors go behind existing content (outline)
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = color;
@@ -558,6 +563,34 @@ export default function ColoringCanvas({
       const progress = calculateProgress();
       onProgressChange(progress);
     }
+  };
+
+  // Check if a point is inside the silhouette
+  const isInsideSilhouette = (x: number, y: number): boolean => {
+    const mask = silhouetteMaskRef.current;
+    if (!mask) return false; // If no mask, allow drawing (fallback)
+
+    const canvas = canvasRef.current;
+    if (!canvas) return false;
+
+    // Convert canvas coordinates to mask coordinates
+    const maskX = Math.floor(x);
+    const maskY = Math.floor(y);
+
+    // Check bounds
+    if (maskX < 0 || maskX >= mask.width || maskY < 0 || maskY >= mask.height) {
+      return false;
+    }
+
+    // Get pixel from mask
+    const idx = (maskY * mask.width + maskX) * 4;
+    const r = mask.data[idx];
+    const g = mask.data[idx + 1];
+    const b = mask.data[idx + 2];
+
+    // Check if pixel is part of silhouette (not white in mask)
+    const brightness = (r + g + b) / 3;
+    return brightness < 250; // Inside silhouette if not white
   };
 
   const redrawOutline = () => {
