@@ -1,3 +1,4 @@
-echo "✅ Pre-commit hook is running!"
-echo "This is a dummy pre-commit hook."
-echo "You can add your checks here (linting, tests, etc.)"
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+node ./scripts/cleanDeployments.mjs

@@ -36,6 +36,10 @@ async function deleteDeployment(deploymentId) {
 }
 
 async function cleanOldDeployments() {
+  if (!token || !teamId || !projectId) {
+    console.error('Missing environment variables');
+    return;
+  }
   const deployments = await getDeployments();
 
   // Sort deployments by creation date descending (newest first)
