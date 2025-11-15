@@ -3,20 +3,13 @@ import { Link } from "react-router-dom";
 import ColoringCanvas, {
   type ColoringCanvasRef,
 } from "../components/ColoringCanvas";
-import ImageGenerator from "../components/ImageGenerator";
 import ProgressBar from "../components/ProgressBar";
+import elsaImage from "../assets/elsa.jpg";
 
 export default function ElsaPage() {
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
-    null
-  );
+  const [generatedImageUrl] = useState<string | null>(elsaImage);
   const [progress, setProgress] = useState(0);
   const canvasRef = useRef<ColoringCanvasRef>(null);
-
-  const handleImageGenerated = (imageUrl: string) => {
-    setGeneratedImageUrl(imageUrl);
-    setProgress(0); // Reset progress when new image is generated
-  };
 
   const handleReset = () => {
     canvasRef.current?.reset();
@@ -67,7 +60,6 @@ export default function ElsaPage() {
           Go to Butterfly
         </Link>
       </div>
-      <ImageGenerator onImageGenerated={handleImageGenerated} />
       <div
         style={{
           padding: "10px 15px",
@@ -82,28 +74,23 @@ export default function ElsaPage() {
         <ProgressBar progress={progress} />
         <button
           onClick={handleReset}
-          disabled={!generatedImageUrl}
           style={{
             padding: "10px 20px",
             fontSize: "16px",
             fontWeight: "bold",
-            backgroundColor: !generatedImageUrl ? "#ccc" : "#FF6B6B",
+            backgroundColor: "#FF6B6B",
             color: "white",
             border: "none",
             borderRadius: "8px",
-            cursor: !generatedImageUrl ? "not-allowed" : "pointer",
+            cursor: "pointer",
             transition: "all 0.2s",
             minWidth: "100px",
           }}
           onMouseEnter={(e) => {
-            if (generatedImageUrl) {
-              e.currentTarget.style.backgroundColor = "#E55A5A";
-            }
+            e.currentTarget.style.backgroundColor = "#E55A5A";
           }}
           onMouseLeave={(e) => {
-            if (generatedImageUrl) {
-              e.currentTarget.style.backgroundColor = "#FF6B6B";
-            }
+            e.currentTarget.style.backgroundColor = "#FF6B6B";
           }}
         >
           Reset
